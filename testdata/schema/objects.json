@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "objects",
+  "definitions": {
+    "base_bool_int": {
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ],
+      "enumNames": [
+        "no",
+        "yes"
+      ]
+    },
+
+    "users_occupation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "ID of school, university, company group",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of occupation"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of occupation"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "users_user_min": {
+      "type": "object",
+      "properties": {
+        "first_name": {
+          "type": "string",
+          "description": "User first name"
+        },
+        "id": {
+          "type": "integer",
+          "description": "User ID"
+        },
+        "last_name": {
+          "type": "string",
+          "description": "User last name"
+        }
+      },
+      "required": [
+        "id",
+        "first_name",
+        "last_name"
+      ],
+      "additionalProperties": false
+    },
+
+    "users_user": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "objects.json#/definitions/users_user_min"
+        },
+        {
+          "properties": {
+            "screen_name": {
+              "type": "string",
+              "description": "Domain name of the user's page"
+            },
+            "photo_50": {
+              "type": "string",
+              "format": "uri",
+              "description": "URL of square photo of the user with 50 pixels in width"
+            },
+            "photo_100": {
+              "type": "string",
+              "format": "uri",
+              "description": "URL of square photo of the user with 100 pixels in width"
+            },
+            "online": {
+              "description": "Information whether the user is online",
+              "$ref": "objects.json#/definitions/base_bool_int"
+            }
+          }
+        }
+      ]
+    },
+
+    "users_user_full": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "objects.json#/definitions/users_user"
+        },
+        {
+          "properties": {
+            "domain": {
+              "type": "string",
+              "description": "Domain name of the user's page"
+            },
+            "bdate": {
+              "type": "string",
+              "description": "User's date of birth"
+            },
+            "blacklisted": {
+              "description": "Information whether current user is in the requested user's blacklist.",
+              "$ref": "objects.json#/definitions/base_bool_int"
+            },
+            "occupation": {
+              "$ref": "objects.json#/definitions/users_occupation"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}
