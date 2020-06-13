@@ -3,7 +3,6 @@ package object
 import (
 	"fmt"
 	"go/ast"
-	"schemaverify/analyzer/parseutil"
 	"schemaverify/analyzer/pragma"
 
 	schema "github.com/lestrrat-go/jsschema"
@@ -16,20 +15,20 @@ type Verifier struct {
 	ReportSkipped bool
 }
 
-func NewVerifier(objects SchemaObjects, schema *schema.Schema, reportSkipped bool) Verifier {
-	return Verifier{Objects: objects, Schema: schema, ReportSkipped: reportSkipped}
+func NewVerifier(objects SchemaObjects, reportSkipped bool) Verifier {
+	return Verifier{Objects: objects, ReportSkipped: reportSkipped}
 }
 
 func (o Verifier) Verify(pass *analysis.Pass) (interface{}, error) {
-	err := o.Objects.ForEach(func(structName string, alias []string, object SchemaObject) (bool, error) {
-		def, ok := Definitions(o.Schema.Definitions).Find(structName, alias)
+	err := o.Objects.ForEach(func(structName string, object SchemaObject) (bool, error) {
+		def, ok := o.Objects.FindDefinition(structName)
 		if !ok { // definition not found: skip
 			if o.ReportSkipped {
 				pass.Reportf(
 					object.Name.Pos(),
 					"%s (%s) struct not found in schema",
 					structName,
-					parseutil.PascalToSnake(structName),
+					def.SchemaName,
 				)
 			}
 			return true, nil
@@ -46,13 +45,13 @@ func (o Verifier) Verify(pass *analysis.Pass) (interface{}, error) {
 	return nil, err
 }
 
-const debug = false
+const debug = true
 
-func (o Verifier) verifyObject(pass *analysis.Pass, obj SchemaObject, def *schema.Schema) error {
+func (o Verifier) verifyObject(pass *analysis.Pass, obj SchemaObject, def DefinitionResult) error {
 	typeName := obj.Name.Name
 
 	if debug {
-		fmt.Println(typeName, ":", parseutil.PascalToSnake(typeName))
+		fmt.Println(typeName, ":", def.SchemaName)
 	}
 
 	switch v := obj.Type.(type) {
@@ -67,16 +66,20 @@ func (o Verifier) verifyStruct(
 	pass *analysis.Pass,
 	typeName string,
 	obj *ast.StructType,
-	def *schema.Schema,
+	def DefinitionResult,
 ) error {
 	fields := o.Objects.MapFields(obj.Fields.List)
+	props, err := MapProperties(def.Schema)
+	if err != nil {
+		return err
+	}
 
-	for _, name := range def.Required {
+	for _, name := range props.Required {
 		if _, ok := fields[name]; !ok {
 			pass.Reportf(
 				obj.Struct,
 				"%s field is required in object %s (%s)",
-				name, typeName, parseutil.PascalToSnake(typeName),
+				name, typeName, def.SchemaName,
 			)
 		}
 	}
@@ -87,15 +90,22 @@ func (o Verifier) verifyStruct(
 			continue
 		}
 
-		prop := def.Properties[name]
+		prop := props.Props[name]
 		if prop == nil {
 			if o.ReportSkipped {
 				pass.Reportf(
 					obj.Struct,
 					"%s (%s) field not found in schema of `%s` object",
-					field.Names[0], name, parseutil.PascalToSnake(typeName),
+					field.Names[0], name, def.SchemaName,
 				)
 			}
+
+			if debug {
+				fmt.Printf("\t%v(%s): %v", field.Names, name, field.Type)
+				fmt.Print(" -> ", "?")
+				fmt.Println()
+			}
+
 			continue
 		}
 

@@ -1,22 +1,23 @@
 package object
 
 import (
+	schema "github.com/lestrrat-go/jsschema"
 	"go/ast"
 	"schemaverify/analyzer/parseutil"
 	"schemaverify/analyzer/pragma"
 )
 
-type SchemaObject *ast.TypeSpec
-
 type SchemaObjects struct {
-	alias   map[string][]string
-	objects map[string]SchemaObject
+	rewrite     map[string]string
+	objects     Structs
+	definitions Definitions
 }
 
-func NewSchemaObjects() SchemaObjects {
+func NewSchemaObjects(root *schema.Schema) SchemaObjects {
 	return SchemaObjects{
-		alias:   map[string][]string{},
-		objects: map[string]SchemaObject{},
+		rewrite:     map[string]string{},
+		objects:     Structs{},
+		definitions: root.Definitions,
 	}
 }
 
@@ -33,7 +34,11 @@ func (o SchemaObjects) InspectCallback(node ast.Node) bool {
 					return true
 				}
 
-				o.AddObject(typeSpec, pragmas.Aliases()...)
+				if rewrite, ok := pragmas.Rewrite(); ok {
+					o.AddRewrite(typeSpec, rewrite)
+				}
+
+				o.AddObject(typeSpec)
 			}
 		}
 	}
@@ -41,9 +46,12 @@ func (o SchemaObjects) InspectCallback(node ast.Node) bool {
 	return true
 }
 
-func (o SchemaObjects) AddObject(obj SchemaObject, aliases ...string) {
+func (o SchemaObjects) AddObject(obj SchemaObject) {
 	o.objects[obj.Name.Name] = obj
-	o.alias[obj.Name.Name] = aliases
+}
+
+func (o SchemaObjects) AddRewrite(obj SchemaObject, schemaName string) {
+	o.rewrite[obj.Name.Name] = schemaName
 }
 
 func (o SchemaObjects) FindObject(t ast.Expr) (SchemaObject, bool) {
@@ -56,9 +64,25 @@ func (o SchemaObjects) FindObject(t ast.Expr) (SchemaObject, bool) {
 	return obj, ok
 }
 
-func (o SchemaObjects) ForEach(cb func(name string, alias []string, obj SchemaObject) (bool, error)) error {
+type DefinitionResult struct {
+	SchemaName string
+	*schema.Schema
+}
+
+func (o SchemaObjects) FindDefinition(structName string) (DefinitionResult, bool) {
+	if rewrite, ok := o.rewrite[structName]; ok {
+		sch, ok := o.definitions[rewrite]
+		return DefinitionResult{SchemaName: rewrite, Schema: sch}, ok
+	}
+
+	schemaName := parseutil.PascalToSnake(structName)
+	sch, ok := o.definitions[schemaName]
+	return DefinitionResult{SchemaName: schemaName, Schema: sch}, ok
+}
+
+func (o SchemaObjects) ForEach(cb func(name string, obj SchemaObject) (bool, error)) error {
 	for name, object := range o.objects {
-		ok, err := cb(name, o.alias[name], object)
+		ok, err := cb(name, object)
 		if err != nil {
 			return err
 		}
@@ -77,8 +101,14 @@ func (o SchemaObjects) MapFields(list []*ast.Field) map[string]*ast.Field {
 	for _, field := range list {
 		var name string
 
-		if v := parseutil.ParseJsonTag(field.Tag); v != "" {
+		pragmas := pragma.ParsePragmas(field.Doc)
+
+		if rewrite, ok := pragmas.Rewrite(); ok {
+			name = rewrite
+		} else if v := parseutil.ParseJSONTag(field.Tag); v != "" {
 			name = v
+		} else if len(field.Names) > 0 {
+			name = field.Names[0].Name
 		} else if obj, ok := o.FindObject(field.Type); ok {
 			switch def := obj.Type.(type) {
 			case *ast.StructType:
@@ -89,6 +119,7 @@ func (o SchemaObjects) MapFields(list []*ast.Field) map[string]*ast.Field {
 		}
 
 		if name == "" {
+
 			continue
 		}
 

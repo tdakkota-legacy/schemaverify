@@ -50,7 +50,7 @@ func PascalToSnake(s string) string {
 }
 
 // Parses Go tag `json:`
-func ParseJsonTag(bl *ast.BasicLit) string {
+func ParseJSONTag(bl *ast.BasicLit) string {
 	if bl == nil {
 		return ""
 	}

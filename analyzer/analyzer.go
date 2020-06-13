@@ -44,11 +44,11 @@ func (s SchemaVerify) Run(pass *analysis.Pass) (interface{}, error) {
 }
 
 func (s SchemaVerify) analyze(pass *analysis.Pass, sch *schema.Schema) (interface{}, error) {
-	objects := object.NewSchemaObjects()
+	objects := object.NewSchemaObjects(sch)
 
 	for _, file := range pass.Files {
 		ast.Inspect(file, objects.InspectCallback)
 	}
 
-	return object.NewVerifier(objects, sch, *s.ReportSkipped).Verify(pass)
+	return object.NewVerifier(objects, *s.ReportSkipped).Verify(pass)
 }
