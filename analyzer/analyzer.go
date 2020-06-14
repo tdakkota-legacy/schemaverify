@@ -44,7 +44,7 @@ func (s SchemaVerify) Run(pass *analysis.Pass) (interface{}, error) {
 }
 
 func (s SchemaVerify) analyze(pass *analysis.Pass, sch *schema.Schema) (interface{}, error) {
-	objects := object.NewSchemaObjects(sch)
+	objects := object.NewMapping(sch)
 
 	for _, file := range pass.Files {
 		ast.Inspect(file, objects.InspectCallback)

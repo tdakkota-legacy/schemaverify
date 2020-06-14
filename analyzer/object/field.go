@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/types"
+	"path"
 	"schemaverify/analyzer/schemautil"
 
 	schema "github.com/lestrrat-go/jsschema"
@@ -11,17 +12,49 @@ import (
 
 func (o Verifier) verifyField(
 	types *types.Info,
+	field *ast.Field,
+	prop *schema.Schema,
+) (string, error) {
+	return o.verifyType(types, field.Type, prop)
+}
+
+func (o Verifier) verifyType(
+	types *types.Info,
 	typ ast.Expr,
 	prop *schema.Schema,
 ) (string, error) {
 	if prop.Type.Len() != 0 {
-		return o.verifySchemaType(types, typ, prop)
+		return o.verifyPrimitiveType(types, typ, prop)
+	}
+
+	return o.verifyReference(types, typ, prop)
+}
+
+func (o Verifier) verifyReference(
+	types *types.Info,
+	typ ast.Expr,
+	prop *schema.Schema,
+) (string, error) {
+	_, object := path.Split(prop.Reference)
+
+	pair, ok := o.Objects.FindBySchemaName(object)
+	if !ok {
+		return "", fmt.Errorf("struct for \"%s\" reference not found", prop.Reference)
+	}
+
+	ident, ok := typ.(*ast.Ident)
+	if !ok {
+		return "", fmt.Errorf("struct for \"%s\" reference not found", prop.Reference)
+	}
+
+	if pair.Object.Name.Name != ident.Name {
+		return "", fmt.Errorf("expected %s, got %s", pair.Object.Name.Name, ident.Name)
 	}
 
 	return prop.Reference, nil
 }
 
-func (o Verifier) verifySchemaType(
+func (o Verifier) verifyPrimitiveType(
 	types *types.Info,
 	typ ast.Expr,
 	prop *schema.Schema,
@@ -41,7 +74,7 @@ func (o Verifier) verifySchemaType(
 			return "", fmt.Errorf("expected array type instead of %v", typ)
 		}
 
-		schemaTypeName, err := o.verifyField(types, sliceType.Elt, prop.Items.Schemas[0])
+		schemaTypeName, err := o.verifyType(types, sliceType.Elt, prop.Items.Schemas[0])
 		if err != nil {
 			return "", err
 		}

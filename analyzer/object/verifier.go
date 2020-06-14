@@ -10,31 +10,32 @@ import (
 )
 
 type Verifier struct {
-	Objects       SchemaObjects
+	Objects       Mappings
 	Schema        *schema.Schema
 	ReportSkipped bool
 }
 
-func NewVerifier(objects SchemaObjects, reportSkipped bool) Verifier {
+func NewVerifier(objects Mappings, reportSkipped bool) Verifier {
 	return Verifier{Objects: objects, ReportSkipped: reportSkipped}
 }
 
 func (o Verifier) Verify(pass *analysis.Pass) (interface{}, error) {
-	err := o.Objects.ForEach(func(structName string, object SchemaObject) (bool, error) {
-		def, ok := o.Objects.FindDefinition(structName)
-		if !ok { // definition not found: skip
+	err := o.Objects.ForEach(func(index int, pair Pair) (bool, error) {
+		object := pair.Object
+
+		if !pair.IsSchemaResolved() { // definition not found: skip
 			if o.ReportSkipped {
 				pass.Reportf(
 					object.Name.Pos(),
 					"%s (%s) struct not found in schema",
-					structName,
-					def.SchemaName,
+					pair.Object.Name.Name,
+					pair.Definition.SchemaName,
 				)
 			}
 			return true, nil
 		}
 
-		err := o.verifyObject(pass, object, def)
+		err := o.verifyObject(pass, object, pair.Definition)
 		if err != nil {
 			return false, err
 		}
@@ -47,7 +48,7 @@ func (o Verifier) Verify(pass *analysis.Pass) (interface{}, error) {
 
 const debug = true
 
-func (o Verifier) verifyObject(pass *analysis.Pass, obj SchemaObject, def DefinitionResult) error {
+func (o Verifier) verifyObject(pass *analysis.Pass, obj *ast.TypeSpec, def Definition) error {
 	typeName := obj.Name.Name
 
 	if debug {
@@ -66,7 +67,7 @@ func (o Verifier) verifyStruct(
 	pass *analysis.Pass,
 	typeName string,
 	obj *ast.StructType,
-	def DefinitionResult,
+	def Definition,
 ) error {
 	fields := o.Objects.MapFields(obj.Fields.List)
 	props, err := MapProperties(def.Schema)
@@ -109,7 +110,7 @@ func (o Verifier) verifyStruct(
 			continue
 		}
 
-		schemaTypeName, err := o.verifyField(pass.TypesInfo, field.Type, prop)
+		schemaTypeName, err := o.verifyField(pass.TypesInfo, field, prop)
 		if err != nil {
 			pass.Reportf(field.Pos(), "Field %s does not match schema: %s", field.Names[0], err.Error())
 		}
