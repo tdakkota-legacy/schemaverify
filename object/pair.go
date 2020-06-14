@@ -1,8 +1,9 @@
 package object
 
 import (
-	schema "github.com/lestrrat-go/jsschema"
 	"go/ast"
+
+	schema "github.com/lestrrat-go/jsschema"
 )
 
 type Definition struct {

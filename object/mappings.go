@@ -2,8 +2,9 @@ package object
 
 import (
 	"go/ast"
-	"schemaverify/analyzer/parseutil"
-	"schemaverify/analyzer/pragma"
+
+	"github.com/tdakkota/schemaverify/parseutil"
+	"github.com/tdakkota/schemaverify/pragma"
 
 	schema "github.com/lestrrat-go/jsschema"
 )

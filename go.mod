@@ -1,4 +1,4 @@
-module schemaverify
+module github.com/tdakkota/schemaverify
 
 go 1.13
 

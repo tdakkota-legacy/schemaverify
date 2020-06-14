@@ -1,9 +1,9 @@
 package object
 
 import (
-	"fmt"
 	"go/ast"
-	"schemaverify/analyzer/pragma"
+
+	"github.com/tdakkota/schemaverify/pragma"
 
 	schema "github.com/lestrrat-go/jsschema"
 	"golang.org/x/tools/go/analysis"
@@ -46,14 +46,8 @@ func (o Verifier) Verify(pass *analysis.Pass) (interface{}, error) {
 	return nil, err
 }
 
-const debug = true
-
 func (o Verifier) verifyObject(pass *analysis.Pass, obj *ast.TypeSpec, def Definition) error {
 	typeName := obj.Name.Name
-
-	if debug {
-		fmt.Println(typeName, ":", def.SchemaName)
-	}
 
 	switch v := obj.Type.(type) {
 	case *ast.StructType:
@@ -101,24 +95,12 @@ func (o Verifier) verifyStruct(
 				)
 			}
 
-			if debug {
-				fmt.Printf("\t%v(%s): %v", field.Names, name, field.Type)
-				fmt.Print(" -> ", "?")
-				fmt.Println()
-			}
-
 			continue
 		}
 
-		schemaTypeName, err := o.verifyField(pass.TypesInfo, field, prop)
+		_, err := o.verifyField(pass.TypesInfo, field, prop)
 		if err != nil {
 			pass.Reportf(field.Pos(), "Field %s does not match schema: %s", field.Names[0], err.Error())
-		}
-
-		if debug {
-			fmt.Printf("\t%v(%s): %v", field.Names, name, field.Type)
-			fmt.Print(" -> ", schemaTypeName)
-			fmt.Println()
 		}
 	}
 

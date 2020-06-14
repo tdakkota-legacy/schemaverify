@@ -5,7 +5,8 @@ import (
 	"go/ast"
 	"go/types"
 	"path"
-	"schemaverify/analyzer/schemautil"
+
+	"github.com/tdakkota/schemaverify/schemautil"
 
 	schema "github.com/lestrrat-go/jsschema"
 )

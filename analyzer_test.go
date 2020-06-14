@@ -1,4 +1,4 @@
-package analyzer
+package schemaverify
 
 import (
 	"log"

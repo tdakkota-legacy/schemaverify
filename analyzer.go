@@ -1,10 +1,11 @@
-package analyzer
+package schemaverify
 
 import (
 	"fmt"
 	"go/ast"
 	"path/filepath"
-	"schemaverify/analyzer/object"
+
+	"github.com/tdakkota/schemaverify/object"
 
 	"github.com/lestrrat-go/jsschema"
 	"golang.org/x/tools/go/analysis"
