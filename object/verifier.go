@@ -27,7 +27,7 @@ func (o Verifier) Verify(pass *analysis.Pass) (interface{}, error) {
 			if o.ReportSkipped {
 				pass.Reportf(
 					object.Name.Pos(),
-					"%s (%s) struct not found in schema",
+					"'%s' ('%s') struct not found in schema",
 					pair.Object.Name.Name,
 					pair.Definition.SchemaName,
 				)
@@ -73,7 +73,7 @@ func (o Verifier) verifyStruct(
 		if _, ok := fields[name]; !ok {
 			pass.Reportf(
 				obj.Struct,
-				"%s field is required in object %s (%s)",
+				"'%s' field is required in object '%s' ('%s')",
 				name, typeName, def.SchemaName,
 			)
 		}
@@ -90,7 +90,7 @@ func (o Verifier) verifyStruct(
 			if o.ReportSkipped {
 				pass.Reportf(
 					obj.Struct,
-					"%s (%s) field not found in schema of `%s` object",
+					"'%s' ('%s') field not found in schema of '%s' object",
 					field.Names[0], name, def.SchemaName,
 				)
 			}
@@ -100,7 +100,7 @@ func (o Verifier) verifyStruct(
 
 		_, err := o.verifyField(pass.TypesInfo, field, prop)
 		if err != nil {
-			pass.Reportf(field.Pos(), "Field %s does not match schema: %s", field.Names[0], err.Error())
+			pass.Reportf(field.Pos(), "Field '%s' does not match schema: %s", field.Names[0], err.Error())
 		}
 	}
 
