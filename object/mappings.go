@@ -138,7 +138,6 @@ func (o Mappings) MapFields(list []*ast.Field) map[string]*ast.Field {
 		}
 
 		if name == "" {
-
 			continue
 		}
 

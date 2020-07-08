@@ -9,13 +9,13 @@ import (
 )
 
 func TestAnalyzer(t *testing.T) {
-	testdata, err := filepath.Abs("../testdata/objects")
+	testdata, err := filepath.Abs("./testdata/objects")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	analyzer := NewAnalyzer()
-	err = analyzer.Flags.Set("schema-dir", "../testdata/schema")
+	err = analyzer.Flags.Set("schema-dir", "./testdata/schema")
 	if err != nil {
 		log.Fatal(err)
 	}

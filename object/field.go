@@ -2,11 +2,10 @@ package object
 
 import (
 	"fmt"
+	"github.com/tdakkota/schemaverify/schemautil"
 	"go/ast"
 	"go/types"
 	"path"
-
-	"github.com/tdakkota/schemaverify/schemautil"
 
 	schema "github.com/lestrrat-go/jsschema"
 )
@@ -40,16 +39,16 @@ func (o Verifier) verifyReference(
 
 	pair, ok := o.Objects.FindBySchemaName(object)
 	if !ok {
-		return "", fmt.Errorf("struct for \"%s\" reference not found", prop.Reference)
+		return "", fmt.Errorf("struct for '%s' reference not found", prop.Reference)
 	}
 
 	ident, ok := typ.(*ast.Ident)
 	if !ok {
-		return "", fmt.Errorf("struct for \"%s\" reference not found", prop.Reference)
+		return "", fmt.Errorf("struct for '%s' reference not found", prop.Reference)
 	}
 
 	if pair.Object.Name.Name != ident.Name {
-		return "", fmt.Errorf("expected %s, got %s", pair.Object.Name.Name, ident.Name)
+		return "", fmt.Errorf("expected '%s', got '%s'", pair.Object.Name.Name, ident.Name)
 	}
 
 	return prop.Reference, nil
@@ -60,10 +59,6 @@ func (o Verifier) verifyPrimitiveType(
 	typ ast.Expr,
 	prop *schema.Schema,
 ) (string, error) {
-	if _, ok := typ.(*ast.InterfaceType); ok {
-		return "interface{}", nil
-	}
-
 	prop, err := prop.Resolve(nil)
 	if err != nil {
 		return "", err
